@@ -25,6 +25,12 @@ func (s *MgoItemService) Create(model *Model) (*Model, error) {
 	return model, err
 }
 
+func (s *MgoItemService) DeleteByID(id string) (string, error) {
+	err := s.itemCollection.RemoveId(bson.ObjectIdHex(id))
+
+	return id, err
+}
+
 func (s *MgoItemService) FindByID(id string) (*Model, error) {
 	var result Model
 

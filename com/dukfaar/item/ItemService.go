@@ -2,6 +2,7 @@ package item
 
 type ItemService interface {
 	Create(*Model) (*Model, error)
+	DeleteByID(id string) (string, error)
 	FindByID(string) (*Model, error)
 	HasElementBeforeID(id string) (bool, error)
 	HasElementAfterID(id string) (bool, error)

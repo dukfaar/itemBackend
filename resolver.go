@@ -5,6 +5,7 @@ import (
 
 	"github.com/dukfaar/goUtils/com/dukfaar/relay"
 	"github.com/dukfaar/itemBackend/com/dukfaar/item"
+	graphql "github.com/graph-gophers/graphql-go"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -80,12 +81,27 @@ func (r *Resolver) CreateItem(ctx context.Context, args struct {
 	return nil, err
 }
 
+func (r *Resolver) DeleteItem(ctx context.Context, args struct {
+	Id string
+}) (*graphql.ID, error) {
+	itemService := ctx.Value("itemService").(item.ItemService)
+
+	deletedID, err := itemService.DeleteByID(args.Id)
+	result := graphql.ID(deletedID)
+
+	if err == nil {
+		return &result, nil
+	}
+
+	return nil, err
+}
+
 func (r *Resolver) Item(ctx context.Context, args struct {
-	Id *string
+	Id string
 }) (*item.Resolver, error) {
 	itemService := ctx.Value("itemService").(item.ItemService)
 
-	queryItem, err := itemService.FindByID(*args.Id)
+	queryItem, err := itemService.FindByID(args.Id)
 
 	if err == nil {
 		return &item.Resolver{
