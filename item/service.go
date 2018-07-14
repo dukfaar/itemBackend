@@ -5,7 +5,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-type ItemService interface {
+type Service interface {
 	Create(*Model) (*Model, error)
 	DeleteByID(id string) (string, error)
 	FindByID(string) (*Model, error)
@@ -17,19 +17,19 @@ type ItemService interface {
 	List(first *int32, last *int32, before *string, after *string) ([]Model, error)
 }
 
-type MgoItemService struct {
+type MgoService struct {
 	db         *mgo.Database
 	collection *mgo.Collection
 }
 
-func NewMgoItemService(db *mgo.Database) *MgoItemService {
-	return &MgoItemService{
+func NewMgoService(db *mgo.Database) *MgoService {
+	return &MgoService{
 		db:         db,
 		collection: db.C("items"),
 	}
 }
 
-func (s *MgoItemService) Create(model *Model) (*Model, error) {
+func (s *MgoService) Create(model *Model) (*Model, error) {
 	model.ID = bson.NewObjectId()
 
 	err := s.collection.Insert(model)
@@ -37,13 +37,13 @@ func (s *MgoItemService) Create(model *Model) (*Model, error) {
 	return model, err
 }
 
-func (s *MgoItemService) DeleteByID(id string) (string, error) {
+func (s *MgoService) DeleteByID(id string) (string, error) {
 	err := s.collection.RemoveId(bson.ObjectIdHex(id))
 
 	return id, err
 }
 
-func (s *MgoItemService) FindByID(id string) (*Model, error) {
+func (s *MgoService) FindByID(id string) (*Model, error) {
 	var result Model
 
 	err := s.collection.FindId(bson.ObjectIdHex(id)).One(&result)
@@ -51,7 +51,7 @@ func (s *MgoItemService) FindByID(id string) (*Model, error) {
 	return &result, err
 }
 
-func (s *MgoItemService) HasElementBeforeID(id string) (bool, error) {
+func (s *MgoService) HasElementBeforeID(id string) (bool, error) {
 	query := bson.M{}
 
 	query["_id"] = bson.M{
@@ -62,7 +62,7 @@ func (s *MgoItemService) HasElementBeforeID(id string) (bool, error) {
 	return count > 0, err
 }
 
-func (s *MgoItemService) HasElementAfterID(id string) (bool, error) {
+func (s *MgoService) HasElementAfterID(id string) (bool, error) {
 	query := bson.M{}
 
 	query["_id"] = bson.M{
@@ -73,12 +73,12 @@ func (s *MgoItemService) HasElementAfterID(id string) (bool, error) {
 	return count > 0, err
 }
 
-func (s *MgoItemService) Count() (int, error) {
+func (s *MgoService) Count() (int, error) {
 	count, err := s.collection.Find(bson.M{}).Count()
 	return count, err
 }
 
-func (s *MgoItemService) List(first *int32, last *int32, before *string, after *string) ([]Model, error) {
+func (s *MgoService) List(first *int32, last *int32, before *string, after *string) ([]Model, error) {
 	query := bson.M{}
 
 	if after != nil {

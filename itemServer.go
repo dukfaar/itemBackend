@@ -30,7 +30,7 @@ func main() {
 
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "db", db)
-	ctx = context.WithValue(ctx, "itemService", item.NewMgoItemService(db))
+	ctx = context.WithValue(ctx, "itemService", item.NewMgoService(db))
 
 	schema := graphql.MustParseSchema(Schema, &Resolver{})
 

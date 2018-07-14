@@ -18,7 +18,7 @@ func (r *Resolver) Items(ctx context.Context, args struct {
 	Before *string
 	After  *string
 }) (*item.ConnectionResolver, error) {
-	itemService := ctx.Value("itemService").(item.ItemService)
+	itemService := ctx.Value("itemService").(item.Service)
 
 	var totalChannel = make(chan int)
 	go func() {
@@ -65,7 +65,7 @@ func (r *Resolver) CreateItem(ctx context.Context, args struct {
 	Name        *string
 	NamespaceId *string
 }) (*item.Resolver, error) {
-	itemService := ctx.Value("itemService").(item.ItemService)
+	itemService := ctx.Value("itemService").(item.Service)
 
 	newModel, err := itemService.Create(&item.Model{
 		Name:        *args.Name,
@@ -84,7 +84,7 @@ func (r *Resolver) CreateItem(ctx context.Context, args struct {
 func (r *Resolver) DeleteItem(ctx context.Context, args struct {
 	Id string
 }) (*graphql.ID, error) {
-	itemService := ctx.Value("itemService").(item.ItemService)
+	itemService := ctx.Value("itemService").(item.Service)
 
 	deletedID, err := itemService.DeleteByID(args.Id)
 	result := graphql.ID(deletedID)
@@ -99,7 +99,7 @@ func (r *Resolver) DeleteItem(ctx context.Context, args struct {
 func (r *Resolver) Item(ctx context.Context, args struct {
 	Id string
 }) (*item.Resolver, error) {
-	itemService := ctx.Value("itemService").(item.ItemService)
+	itemService := ctx.Value("itemService").(item.Service)
 
 	queryItem, err := itemService.FindByID(args.Id)
 
