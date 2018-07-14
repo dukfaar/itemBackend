@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/dukfaar/goUtils/com/dukfaar/relay"
-	"github.com/dukfaar/itemBackend/com/dukfaar/item"
+	"github.com/dukfaar/goUtils/relay"
+	"github.com/dukfaar/itemBackend/item"
 )
 
 var Schema string = `

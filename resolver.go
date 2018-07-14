@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
-	"github.com/dukfaar/goUtils/com/dukfaar/relay"
-	"github.com/dukfaar/itemBackend/com/dukfaar/item"
+	"github.com/dukfaar/goUtils/relay"
+	"github.com/dukfaar/itemBackend/item"
 	graphql "github.com/graph-gophers/graphql-go"
 	"gopkg.in/mgo.v2/bson"
 )

@@ -5,9 +5,9 @@ import (
 	"log"
 	"net/http"
 
-	dukGraphql "github.com/dukfaar/goUtils/com/dukfaar/graphql"
-	dukHttp "github.com/dukfaar/goUtils/com/dukfaar/http"
-	"github.com/dukfaar/itemBackend/com/dukfaar/item"
+	dukGraphql "github.com/dukfaar/goUtils/graphql"
+	dukHttp "github.com/dukfaar/goUtils/http"
+	"github.com/dukfaar/itemBackend/item"
 
 	"gopkg.in/mgo.v2"
 

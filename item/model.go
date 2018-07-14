@@ -1,7 +1,7 @@
 package item
 
 import (
-	"github.com/dukfaar/goUtils/com/dukfaar/relay"
+	"github.com/dukfaar/goUtils/relay"
 	"gopkg.in/mgo.v2/bson"
 )
 

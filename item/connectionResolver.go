@@ -1,6 +1,6 @@
 package item
 
-import "github.com/dukfaar/goUtils/com/dukfaar/relay"
+import "github.com/dukfaar/goUtils/relay"
 
 type ConnectionResolver struct {
 	Models []Model
