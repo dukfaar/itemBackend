@@ -9,9 +9,9 @@ type ConnectionResolver struct {
 
 func (r *ConnectionResolver) Edges() *[]*EdgeResolver {
 	l := make([]*EdgeResolver, len(r.Models))
-	for i, model := range r.Models {
+	for i := range r.Models {
 		l[i] = &EdgeResolver{
-			model: &model,
+			model: &r.Models[i],
 		}
 	}
 	return &l
