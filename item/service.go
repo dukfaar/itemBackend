@@ -1,6 +1,7 @@
 package item
 
 import (
+	"github.com/dukfaar/goUtils/eventbus"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -20,12 +21,14 @@ type Service interface {
 type MgoService struct {
 	db         *mgo.Database
 	collection *mgo.Collection
+	eventbus   eventbus.EventBus
 }
 
-func NewMgoService(db *mgo.Database) *MgoService {
+func NewMgoService(db *mgo.Database, eventbus eventbus.EventBus) *MgoService {
 	return &MgoService{
 		db:         db,
 		collection: db.C("items"),
+		eventbus:   eventbus,
 	}
 }
 
@@ -34,11 +37,37 @@ func (s *MgoService) Create(model *Model) (*Model, error) {
 
 	err := s.collection.Insert(model)
 
+	if err == nil {
+		s.eventbus.Emit("item.created", model)
+	}
+
 	return model, err
+}
+
+func (s *MgoService) Update(id string, input interface{}) (*Model, error) {
+	err := s.collection.UpdateId(bson.ObjectIdHex(id), input)
+
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := s.FindByID(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	s.eventbus.Emit("item.updated", result)
+
+	return result, err
 }
 
 func (s *MgoService) DeleteByID(id string) (string, error) {
 	err := s.collection.RemoveId(bson.ObjectIdHex(id))
+
+	if err == nil {
+		s.eventbus.Emit("item.deleted", id)
+	}
 
 	return id, err
 }

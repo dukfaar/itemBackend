@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/dukfaar/goUtils/eventbus"
 	dukGraphql "github.com/dukfaar/goUtils/graphql"
 	dukHttp "github.com/dukfaar/goUtils/http"
 	"github.com/dukfaar/itemBackend/item"
@@ -28,9 +29,11 @@ func main() {
 
 	db := dbSession.DB("item")
 
+	eventbus := eventbus.NewNsqEventBus("localhost:4150", "localhost:4161")
+
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "db", db)
-	ctx = context.WithValue(ctx, "itemService", item.NewMgoService(db))
+	ctx = context.WithValue(ctx, "itemService", item.NewMgoService(db, eventbus))
 
 	schema := graphql.MustParseSchema(Schema, &Resolver{})
 
