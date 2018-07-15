@@ -81,6 +81,27 @@ func (r *Resolver) CreateItem(ctx context.Context, args struct {
 	return nil, err
 }
 
+func (r *Resolver) UpdateItem(ctx context.Context, args struct {
+	Id          string
+	Name        *string
+	NamespaceId *string
+}) (*item.Resolver, error) {
+	itemService := ctx.Value("itemService").(item.Service)
+
+	newModel, err := itemService.Update(args.Id, &item.Model{
+		Name:        *args.Name,
+		NamespaceID: bson.ObjectIdHex(*args.NamespaceId),
+	})
+
+	if err == nil {
+		return &item.Resolver{
+			Model: newModel,
+		}, nil
+	}
+
+	return nil, err
+}
+
 func (r *Resolver) DeleteItem(ctx context.Context, args struct {
 	Id string
 }) (*graphql.ID, error) {

@@ -8,6 +8,7 @@ import (
 
 type Service interface {
 	Create(*Model) (*Model, error)
+	Update(string, interface{}) (*Model, error)
 	DeleteByID(id string) (string, error)
 	FindByID(string) (*Model, error)
 	HasElementBeforeID(id string) (bool, error)

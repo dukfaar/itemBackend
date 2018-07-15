@@ -18,6 +18,7 @@ var Schema string = `
 
 		type Mutation {
 			createItem(name: String, namespaceId: ID): Item!
+			updateItem(id: ID!, name: String, namespaceId: ID): Item!
 			deleteItem(id: ID!): ID
 		}` +
 	relay.PageInfoGraphQLString +
