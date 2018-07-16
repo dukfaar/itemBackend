@@ -28,11 +28,11 @@ func main() {
 
 	db := dbSession.DB("item")
 
-	eventbus := eventbus.NewNsqEventBus(env.GetDefaultEnvVar("NSQD_TCP_URL", "localhost:4150"), env.GetDefaultEnvVar("NSQLOOKUP_HTTP_URL", "localhost:4161"))
+	nsqEventbus := eventbus.NewNsqEventBus(env.GetDefaultEnvVar("NSQD_TCP_URL", "localhost:4150"), env.GetDefaultEnvVar("NSQLOOKUP_HTTP_URL", "localhost:4161"))
 
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "db", db)
-	ctx = context.WithValue(ctx, "itemService", item.NewMgoService(db, eventbus))
+	ctx = context.WithValue(ctx, "itemService", item.NewMgoService(db, nsqEventbus))
 
 	schema := graphql.MustParseSchema(Schema, &Resolver{})
 
@@ -50,6 +50,16 @@ func main() {
 			},
 		},
 	}))
+
+	serviceInfo := eventbus.ServiceInfo{
+		Name:                  "item",
+		Hostname:              env.GetDefaultEnvVar("PUBLISHED_HOSTNAME", "itembackend"),
+		Port:                  env.GetDefaultEnvVar("PUBLISHED_PORT", "8080"),
+		GraphQLHttpEndpoint:   "/graphql",
+		GraphQLSocketEndpoint: "/socket",
+	}
+
+	nsqEventbus.Emit("service.up", serviceInfo)
 
 	log.Fatal(http.ListenAndServe(":"+env.GetDefaultEnvVar("PORT", "8080"), nil))
 }
