@@ -37,9 +37,9 @@ func main() {
 
 	schema := graphql.MustParseSchema(Schema, &Resolver{})
 
-	http.Handle("/graphql", dukHttp.AddContext(ctx, &graphqlRelay.Handler{
+	http.Handle("/graphql", dukHttp.AddContext(ctx, dukHttp.Authenticate(&graphqlRelay.Handler{
 		Schema: schema,
-	}))
+	})))
 
 	http.Handle("/socket", dukHttp.AddContext(ctx, &dukGraphql.SocketHandler{
 		Schema: schema,
