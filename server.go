@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -40,6 +39,38 @@ func NewClientLoginHttpFetcher(fetcher *dukGraphql.HttpFetcher, clientID string,
 	}
 }
 
+type GraphQLResponseArray struct {
+	response []interface{}
+}
+
+type GraphQLResponse struct {
+	response interface{}
+}
+
+func (r *GraphQLResponseArray) Get(index int) *GraphQLResponse {
+	return &GraphQLResponse{r.response[index]}
+}
+
+func (r *GraphQLResponseArray) Len() int {
+	return len(r.response)
+}
+
+func (r *GraphQLResponse) GetObject(key string) *GraphQLResponse {
+	return &GraphQLResponse{(r.response.(map[string]interface{}))[key]}
+}
+
+func (r *GraphQLResponse) GetArray(key string) *GraphQLResponseArray {
+	return &GraphQLResponseArray{r.response.(map[string]interface{})[key].([]interface{})}
+}
+
+func (r *GraphQLResponse) GetString(key string) string {
+	return (r.response.(map[string]interface{}))[key].(string)
+}
+
+func (r *GraphQLResponse) GetInt64(key string) (int64, error) {
+	return strconv.ParseInt(r.GetString(key), 10, 64)
+}
+
 func (f *ClientLoginHttpFetcher) doLogin() error {
 	result, err := f.fetcher.Fetch(dukGraphql.Request{
 		Query: `query {
@@ -54,10 +85,10 @@ func (f *ClientLoginHttpFetcher) doLogin() error {
 		return err
 	}
 
-	clientlogin := result.(map[string]interface{})
-	token := clientlogin["clientlogin"].(map[string]interface{})
-	f.accessToken = token["accessToken"].(string)
-	accessTokenExpiresAt, _ := strconv.ParseInt(token["accessTokenExpiresAt"].(string), 10, 64)
+	clientlogin := GraphQLResponse{result}
+	token := clientlogin.GetObject("clientlogin")
+	f.accessToken = token.GetString("accessToken")
+	accessTokenExpiresAt, _ := token.GetInt64("accessTokenExpiresAt")
 	accessTokenExpiresAtSeconds := accessTokenExpiresAt / 1000
 	accessTokenExpiresAtNSeconds := (accessTokenExpiresAt % 1000) * 1e6
 
@@ -138,17 +169,82 @@ func main() {
 							edges {
 								node {
 									_id
-									name
 								}
 							}
 						}
 					}
 				}
 			}
+			roles {
+				edges {
+					node {
+						_id
+						permissions {
+							edges {
+								node {
+									_id
+								}
+							}
+						}
+					}
+				}
+			}
+			permissions {
+				edges {
+					node {
+						_id
+						name
+					}
+				}
+			}
 		}`,
 	})
+	queryResult := GraphQLResponse{result}
 
-	fmt.Println(result)
+	userRoleData := make(map[string][]string)
+	rolePermissionData := make(map[string][]string)
+	permissionData := make(map[string]string)
+
+	userEdges := queryResult.GetObject("users").GetArray("edges")
+	for i := 0; i < userEdges.Len(); i++ {
+		userEdge := userEdges.Get(i)
+		user := userEdge.GetObject("node")
+		id := user.GetString("_id")
+
+		roleEdges := user.GetObject("roles").GetArray("edges")
+		userRoles := make([]string, roleEdges.Len())
+		for j := 0; j < roleEdges.Len(); j++ {
+			roleEdge := roleEdges.Get(j)
+			role := roleEdge.GetObject("node")
+			userRoles[j] = role.GetString("_id")
+		}
+
+		userRoleData[id] = userRoles
+	}
+
+	roleEdges := queryResult.GetObject("roles").GetArray("edges")
+	for i := 0; i < roleEdges.Len(); i++ {
+		roleEdge := roleEdges.Get(i)
+		role := roleEdge.GetObject("node")
+		id := role.GetString("_id")
+
+		permissionEdges := role.GetObject("permissions").GetArray("edges")
+		rolePermissions := make([]string, permissionEdges.Len())
+		for j := 0; j < permissionEdges.Len(); j++ {
+			permissionEdge := permissionEdges.Get(j)
+			permission := permissionEdge.GetObject("node")
+			rolePermissions[j] = permission.GetString("_id")
+		}
+
+		rolePermissionData[id] = rolePermissions
+	}
+
+	permissionEdges := queryResult.GetObject("permissions").GetArray("edges")
+	for j := 0; j < permissionEdges.Len(); j++ {
+		permissionEdge := permissionEdges.Get(j)
+		permission := permissionEdge.GetObject("node")
+		permissionData[permission.GetString("_id")] = permission.GetString("name")
+	}
 
 	nsqEventbus.On("service.up", "item", func(msg []byte) error {
 		newService := eventbus.ServiceInfo{}
