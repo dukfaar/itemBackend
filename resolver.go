@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 
+	"github.com/dukfaar/itemBackend/permission"
+
 	"github.com/dukfaar/goUtils/relay"
 	"github.com/dukfaar/itemBackend/item"
 	graphql "github.com/graph-gophers/graphql-go"
@@ -18,6 +20,11 @@ func (r *Resolver) Items(ctx context.Context, args struct {
 	Before *string
 	After  *string
 }) (*item.ConnectionResolver, error) {
+	err := permission.Check(ctx, "query.items")
+	if err != nil {
+		return nil, err
+	}
+
 	itemService := ctx.Value("itemService").(item.Service)
 
 	var totalChannel = make(chan int)
@@ -65,6 +72,11 @@ func (r *Resolver) CreateItem(ctx context.Context, args struct {
 	Name        *string
 	NamespaceId *string
 }) (*item.Resolver, error) {
+	err := permission.Check(ctx, "query.createItem")
+	if err != nil {
+		return nil, err
+	}
+
 	itemService := ctx.Value("itemService").(item.Service)
 
 	newModel, err := itemService.Create(&item.Model{
@@ -86,6 +98,11 @@ func (r *Resolver) UpdateItem(ctx context.Context, args struct {
 	Name        *string
 	NamespaceId *string
 }) (*item.Resolver, error) {
+	err := permission.Check(ctx, "query.updateItem")
+	if err != nil {
+		return nil, err
+	}
+
 	itemService := ctx.Value("itemService").(item.Service)
 
 	newModel, err := itemService.Update(args.Id, &item.Model{
@@ -105,6 +122,11 @@ func (r *Resolver) UpdateItem(ctx context.Context, args struct {
 func (r *Resolver) DeleteItem(ctx context.Context, args struct {
 	Id string
 }) (*graphql.ID, error) {
+	err := permission.Check(ctx, "query.deleteItem")
+	if err != nil {
+		return nil, err
+	}
+
 	itemService := ctx.Value("itemService").(item.Service)
 
 	deletedID, err := itemService.DeleteByID(args.Id)
@@ -120,6 +142,11 @@ func (r *Resolver) DeleteItem(ctx context.Context, args struct {
 func (r *Resolver) Item(ctx context.Context, args struct {
 	Id string
 }) (*item.Resolver, error) {
+	err := permission.Check(ctx, "query.item")
+	if err != nil {
+		return nil, err
+	}
+
 	itemService := ctx.Value("itemService").(item.Service)
 
 	queryItem, err := itemService.FindByID(args.Id)

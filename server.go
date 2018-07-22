@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -13,6 +15,7 @@ import (
 	dukGraphql "github.com/dukfaar/goUtils/graphql"
 	dukHttp "github.com/dukfaar/goUtils/http"
 	"github.com/dukfaar/itemBackend/item"
+	"github.com/dukfaar/itemBackend/permission"
 
 	"gopkg.in/mgo.v2"
 
@@ -71,7 +74,7 @@ func (r *GraphQLResponse) GetInt64(key string) (int64, error) {
 	return strconv.ParseInt(r.GetString(key), 10, 64)
 }
 
-func JSTimestampToTime(timestamp string) time.Time {
+func JSTimestampToTime(timestamp int64) time.Time {
 	seconds := timestamp / 1000
 	nSeconds := (timestamp % 1000) * 1e6
 
@@ -115,6 +118,115 @@ func (f *ClientLoginHttpFetcher) Fetch(request dukGraphql.Request) (interface{},
 	return f.fetcher.Fetch(request)
 }
 
+type LoginSuccessMsg struct {
+	UserID               string `json:"userId,omitempty"`
+	AccessToken          string `json:"accessToken,omitempty"`
+	AccessTokenExpiresAt string `json:"accessTokenExpiresAt,omitempty"`
+}
+
+type RoleMsg struct {
+	ID          string   `json:"_id,omitempty"`
+	Permissions []string `json:"permissions,omitempty"`
+}
+
+type PermissionMsg struct {
+	ID   string `json:"_id,omitempty"`
+	Name string `json:"name,omitempty"`
+}
+
+type UserMsg struct {
+	ID    string   `json:"_id,omitempty"`
+	Roles []string `json:"roles,omitempty"`
+}
+
+func AddAuthEventsHandlers(nsqEventbus *eventbus.NsqEventBus, permissionService *permission.Service) {
+	hostname, err := os.Hostname()
+	if err != nil {
+		panic("Could not determine Hostname")
+	}
+
+	channelName := "item_" + hostname
+
+	permissionHandler := func(msg []byte) error {
+		permissionMsg := PermissionMsg{}
+
+		err := json.Unmarshal(msg, &permissionMsg)
+		if err != nil {
+			err = fmt.Errorf("Error unmarshaling: %v: %v", string(msg), err)
+			fmt.Println(err)
+			return err
+		}
+
+		permissionService.SetPermission(permissionMsg.ID, permissionMsg.Name)
+		permissionService.BuildUserPermissionData()
+
+		return nil
+	}
+
+	roleHandler := func(msg []byte) error {
+		roleMsg := RoleMsg{}
+
+		err := json.Unmarshal(msg, &roleMsg)
+		if err != nil {
+			err = fmt.Errorf("Error unmarshaling: %v: %v", string(msg), err)
+			fmt.Println(err)
+			return err
+		}
+
+		permissionService.SetRole(roleMsg.ID, roleMsg.Permissions)
+		permissionService.BuildUserPermissionData()
+
+		return nil
+	}
+
+	userHandler := func(msg []byte) error {
+		userMsg := UserMsg{}
+
+		err := json.Unmarshal(msg, &userMsg)
+		if err != nil {
+			err = fmt.Errorf("Error unmarshaling: %v: %v", string(msg), err)
+			fmt.Println(err)
+			return err
+		}
+
+		permissionService.SetUser(userMsg.ID, userMsg.Roles)
+		permissionService.BuildUserPermissionData()
+
+		return nil
+	}
+
+	nsqEventbus.On("permission.created", channelName, permissionHandler)
+	nsqEventbus.On("permission.updated", channelName, permissionHandler)
+
+	nsqEventbus.On("role.created", channelName, roleHandler)
+	nsqEventbus.On("role.updated", channelName, roleHandler)
+
+	nsqEventbus.On("user.created", channelName, userHandler)
+	nsqEventbus.On("user.updated", channelName, userHandler)
+
+	nsqEventbus.On("login.success", channelName, func(msg []byte) error {
+		loginSuccess := LoginSuccessMsg{}
+
+		err := json.Unmarshal(msg, &loginSuccess)
+		if err != nil {
+			err = fmt.Errorf("Error unmarshaling: %v: %v", string(msg), err)
+			fmt.Println(err)
+			return err
+		}
+
+		expiresAt, err := time.Parse(time.RFC3339Nano, loginSuccess.AccessTokenExpiresAt)
+		if err != nil {
+			err = fmt.Errorf("Error parsing time: %v: %v", string(msg), err)
+			fmt.Println(err)
+			return err
+		}
+
+		permissionService.SetToken(loginSuccess.UserID, loginSuccess.AccessToken, expiresAt)
+		permissionService.BuildUserPermissionData()
+		return nil
+	})
+}
+
 func main() {
 	dbSession, err := mgo.Dial(env.GetDefaultEnvVar("DB_HOST", "localhost"))
 	if err != nil {
@@ -125,10 +237,12 @@ func main() {
 	db := dbSession.DB("item")
 
 	nsqEventbus := eventbus.NewNsqEventBus(env.GetDefaultEnvVar("NSQD_TCP_URL", "localhost:4150"), env.GetDefaultEnvVar("NSQLOOKUP_HTTP_URL", "localhost:4161"))
+	permissionService := permission.NewService()
 
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "db", db)
 	ctx = context.WithValue(ctx, "itemService", item.NewMgoService(db, nsqEventbus))
+	ctx = context.WithValue(ctx, "permissionService", permissionService)
 
 	schema := graphql.MustParseSchema(Schema, &Resolver{})
 
@@ -215,15 +329,15 @@ func main() {
 	})
 	queryResult := GraphQLResponse{result}
 
-	type TokenData struct {
-		userId               string
-		accessTokenExpiresAt time.Time
-	}
+	tokenEdges := queryResult.GetObject("tokens").GetArray("edges")
+	for j := 0; j < tokenEdges.Len(); j++ {
+		tokenEdge := tokenEdges.Get(j)
+		token := tokenEdge.GetObject("node")
+		accessTokenExpiresAt, _ := token.GetInt64("accessTokenExpiresAt")
+		expiresAt := JSTimestampToTime(accessTokenExpiresAt)
 
-	tokenData := make(map[string]TokenData)
-	userRoleData := make(map[string][]string)
-	rolePermissionData := make(map[string][]string)
-	permissionData := make(map[string]string)
+		permissionService.SetToken(token.GetString("accessToken"), token.GetString("userId"), expiresAt)
+	}
 
 	userEdges := queryResult.GetObject("users").GetArray("edges")
 	for i := 0; i < userEdges.Len(); i++ {
@@ -239,7 +353,7 @@ func main() {
 			userRoles[j] = role.GetString("_id")
 		}
 
-		userRoleData[id] = userRoles
+		permissionService.SetUser(id, userRoles)
 	}
 
 	roleEdges := queryResult.GetObject("roles").GetArray("edges")
@@ -256,27 +370,17 @@ func main() {
 			rolePermissions[j] = permission.GetString("_id")
 		}
 
-		rolePermissionData[id] = rolePermissions
+		permissionService.SetRole(id, rolePermissions)
 	}
 
 	permissionEdges := queryResult.GetObject("permissions").GetArray("edges")
 	for j := 0; j < permissionEdges.Len(); j++ {
 		permissionEdge := permissionEdges.Get(j)
 		permission := permissionEdge.GetObject("node")
-		permissionData[permission.GetString("_id")] = permission.GetString("name")
+		permissionService.SetPermission(permission.GetString("_id"), permission.GetString("name"))
 	}
 
-	tokenEdges := queryResult.GetObject("tokens").GetArray("edges")
-	for j := 0; j < tokenEdges.Len(); j++ {
-		tokenEdge := tokenEdges.Get(j)
-		token := tokenEdge.GetObject("node")
-		accessTokenExpiresAt, _ := token.GetInt64("accessTokenExpiresAt")
-		expiresAt := JSTimestampToTime(accessTokenExpiresAt)
-
-		tokenData[permission.GetString("accessToken")] = TokenData{
-			userId: permission.GetString("userId"),
-			accessTokenExpiresAt: expiresAt,
-	}
+	permissionService.BuildUserPermissionData()
 
 	nsqEventbus.On("service.up", "item", func(msg []byte) error {
 		newService := eventbus.ServiceInfo{}
@@ -288,6 +392,8 @@ func main() {
 
 		return nil
 	})
+
+	AddAuthEventsHandlers(nsqEventbus, permissionService)
 
 	log.Fatal(http.ListenAndServe(":"+env.GetDefaultEnvVar("PORT", "8080"), nil))
 }
