@@ -71,6 +71,13 @@ func (r *GraphQLResponse) GetInt64(key string) (int64, error) {
 	return strconv.ParseInt(r.GetString(key), 10, 64)
 }
 
+func JSTimestampToTime(timestamp string) time.Time {
+	seconds := timestamp / 1000
+	nSeconds := (timestamp % 1000) * 1e6
+
+	return time.Unix(seconds, nSeconds)
+}
+
 func (f *ClientLoginHttpFetcher) doLogin() error {
 	result, err := f.fetcher.Fetch(dukGraphql.Request{
 		Query: `query {
@@ -89,10 +96,8 @@ func (f *ClientLoginHttpFetcher) doLogin() error {
 	token := clientlogin.GetObject("clientlogin")
 	f.accessToken = token.GetString("accessToken")
 	accessTokenExpiresAt, _ := token.GetInt64("accessTokenExpiresAt")
-	accessTokenExpiresAtSeconds := accessTokenExpiresAt / 1000
-	accessTokenExpiresAtNSeconds := (accessTokenExpiresAt % 1000) * 1e6
 
-	f.accessTokenExpiresAt = time.Unix(accessTokenExpiresAtSeconds, accessTokenExpiresAtNSeconds)
+	f.accessTokenExpiresAt = JSTimestampToTime(accessTokenExpiresAt)
 
 	f.fetcher.SetHeader("Authentication", "Bearer "+f.accessToken)
 	return nil
@@ -197,10 +202,25 @@ func main() {
 					}
 				}
 			}
+			tokens {
+				edges {
+					node {
+						accessToken
+						accessTokenExpiresAt
+						userId
+					}
+				}
+			}
 		}`,
 	})
 	queryResult := GraphQLResponse{result}
 
+	type TokenData struct {
+		userId               string
+		accessTokenExpiresAt time.Time
+	}
+
+	tokenData := make(map[string]TokenData)
 	userRoleData := make(map[string][]string)
 	rolePermissionData := make(map[string][]string)
 	permissionData := make(map[string]string)
@@ -244,6 +264,18 @@ func main() {
 		permissionEdge := permissionEdges.Get(j)
 		permission := permissionEdge.GetObject("node")
 		permissionData[permission.GetString("_id")] = permission.GetString("name")
+	}
+
+	tokenEdges := queryResult.GetObject("tokens").GetArray("edges")
+	for j := 0; j < tokenEdges.Len(); j++ {
+		tokenEdge := tokenEdges.Get(j)
+		token := tokenEdge.GetObject("node")
+		accessTokenExpiresAt, _ := token.GetInt64("accessTokenExpiresAt")
+		expiresAt := JSTimestampToTime(accessTokenExpiresAt)
+
+		tokenData[permission.GetString("accessToken")] = TokenData{
+			userId: permission.GetString("userId"),
+			accessTokenExpiresAt: expiresAt,
 	}
 
 	nsqEventbus.On("service.up", "item", func(msg []byte) error {
