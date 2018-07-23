@@ -82,6 +82,9 @@ func main() {
 	result, err := loginApiGatewayFetcher.Fetch(dukGraphql.Request{
 		Query: permission.Query,
 	})
+	if err != nil {
+		panic(err)
+	}
 	queryResult := dukGraphql.Response{result}
 
 	permission.ParseQueryResponse(queryResult, permissionService)
