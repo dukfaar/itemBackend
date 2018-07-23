@@ -77,6 +77,8 @@ func main() {
 	clientID := os.Getenv("CLIENT_ID")
 	clientSecret := os.Getenv("CLIENT_SECRET")
 
+	fmt.Println(clientID)
+	fmt.Println(clientSecret)
 	loginApiGatewayFetcher := dukGraphql.NewClientLoginHttpFetcher(apiGatewayFetcher, clientID, clientSecret)
 
 	result, err := loginApiGatewayFetcher.Fetch(dukGraphql.Request{
