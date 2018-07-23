@@ -19,8 +19,8 @@ func Check(ctx context.Context, permission string) error {
 		return InvalidAuthHeader{}
 	}
 
-	if !permissionService.TokenHasPermission(splitAuthentication[1], "item.namespaceId.read") {
-		return MissingError{"item"}
+	if !permissionService.TokenHasPermission(splitAuthentication[1], permission) {
+		return MissingError{permission}
 	}
 
 	return nil
