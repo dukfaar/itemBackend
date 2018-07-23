@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/dukfaar/goUtils/env"
 	"github.com/dukfaar/goUtils/eventbus"
@@ -70,7 +71,10 @@ func main() {
 		env.GetDefaultEnvVar("API_GATEWAY_PATH", "/graphql"),
 	)
 
-	loginApiGatewayFetcher := dukGraphql.NewClientLoginHttpFetcher(apiGatewayFetcher, "dukfaar-cloud-internal", "i am a ninja cat")
+	clientID := os.Getenv("CLIENT_ID")
+	clientSecret := os.Getenv("CLIENT_SECRET")
+
+	loginApiGatewayFetcher := dukGraphql.NewClientLoginHttpFetcher(apiGatewayFetcher, clientID, clientSecret)
 
 	result, err := loginApiGatewayFetcher.Fetch(dukGraphql.Request{
 		Query: permission.Query,
