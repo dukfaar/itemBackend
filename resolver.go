@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"github.com/dukfaar/itemBackend/permission"
+	"github.com/dukfaar/goUtils/permission"
 
 	"github.com/dukfaar/goUtils/relay"
 	"github.com/dukfaar/itemBackend/item"

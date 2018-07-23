@@ -3,7 +3,7 @@ package item
 import (
 	"context"
 
-	"github.com/dukfaar/itemBackend/permission"
+	"github.com/dukfaar/goUtils/permission"
 	graphql "github.com/graph-gophers/graphql-go"
 )
 

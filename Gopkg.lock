@@ -9,10 +9,11 @@
     "eventbus",
     "graphql",
     "http",
+    "permission",
     "relay",
     "service"
   ]
-  revision = "4f612b93f83debbd537eae149f4f13120a99acfe"
+  revision = "4198f814569c7b3d40a1461462c4f13faf5d8031"
 
 [[projects]]
   branch = "master"
@@ -84,6 +85,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ce8e0aeb1039fe159b6ca126fc55b7ffdd13940b7f279f5e8ac10ea28485cd9d"
+  inputs-digest = "4a029cb9c6e772d0c3a5b4b4f1c3bbf88e7614541536347787b3ec5194f514f7"
   solver-name = "gps-cdcl"
   solver-version = 1
