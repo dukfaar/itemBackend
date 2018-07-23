@@ -70,7 +70,7 @@ func main() {
 	url := env.GetDefaultEnvVar("API_GATEWAY_HOST", "localhost") + ":" + env.GetDefaultEnvVar("API_GATEWAY_PORT", "8090")
 	path := env.GetDefaultEnvVar("API_GATEWAY_PATH", "/graphql")
 
-	fmt.Printf("gatewayFetcherUrl: %v%v", url, path)
+	fmt.Printf("gatewayFetcherUrl: %v%v\n", url, path)
 
 	apiGatewayFetcher, err := dukGraphql.NewHttpFetcher(url, path)
 
