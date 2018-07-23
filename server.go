@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -66,10 +67,12 @@ func main() {
 
 	nsqEventbus.Emit("service.up", serviceInfo)
 
-	apiGatewayFetcher, err := dukGraphql.NewHttpFetcher(
-		env.GetDefaultEnvVar("API_GATEWAY_HOST", "localhost")+":"+env.GetDefaultEnvVar("API_GATEWAY_PORT", "8090"),
-		env.GetDefaultEnvVar("API_GATEWAY_PATH", "/graphql"),
-	)
+	url := env.GetDefaultEnvVar("API_GATEWAY_HOST", "localhost") + ":" + env.GetDefaultEnvVar("API_GATEWAY_PORT", "8090")
+	path := env.GetDefaultEnvVar("API_GATEWAY_PATH", "/graphql")
+
+	fmt.Printf("gatewayFetcherUrl: %v%v", url, path)
+
+	apiGatewayFetcher, err := dukGraphql.NewHttpFetcher(url, path)
 
 	clientID := os.Getenv("CLIENT_ID")
 	clientSecret := os.Getenv("CLIENT_SECRET")
