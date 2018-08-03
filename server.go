@@ -21,6 +21,8 @@ import (
 
 	graphql "github.com/graph-gophers/graphql-go"
 	graphqlRelay "github.com/graph-gophers/graphql-go/relay"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -102,6 +104,8 @@ func main() {
 	})
 
 	permission.AddAuthEventsHandlers(nsqEventbus, permissionService)
+
+	http.Handle("/metrics", promhttp.Handler())
 
 	log.Fatal(http.ListenAndServe(":"+env.GetDefaultEnvVar("PORT", "8080"), nil))
 }
