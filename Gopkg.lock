@@ -11,7 +11,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:4b29f46d071b7be200c666a98f2f5d862321495336c96cdc6dd73cb3b6c81dd2"
+  digest = "1:da604ddecdd3a20cb0e075246d55f76e87cce1585964fd686fde6910446bce83"
   name = "github.com/dukfaar/goUtils"
   packages = [
     "env",
@@ -23,7 +23,7 @@
     "service",
   ]
   pruneopts = "UT"
-  revision = "ee7335453f36d06768be72c75a7e54f70df26548"
+  revision = "29568234700b81b5ba91da828418dd80bd02e348"
 
 [[projects]]
   branch = "master"
@@ -31,7 +31,7 @@
   name = "github.com/dukfaar/itemBackend"
   packages = ["item"]
   pruneopts = "UT"
-  revision = "0a630c5ad3dadee58aa022997fe11eef998cdb68"
+  revision = "8046de88d726378838bb6038b79c6fa80be8d00a"
 
 [[projects]]
   digest = "1:15042ad3498153684d09f393bbaec6b216c8eec6d61f63dff711de7d64ed8861"
@@ -158,7 +158,7 @@
   name = "golang.org/x/net"
   packages = ["context"]
   pruneopts = "UT"
-  revision = "a680a1efc54dd51c040b3b5ce4939ea3cf2ea0d1"
+  revision = "f4c29de78a2a91c00474a2e689954305c350adf9"
 
 [[projects]]
   branch = "v2"
