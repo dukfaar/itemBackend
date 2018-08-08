@@ -26,14 +26,6 @@
   revision = "29568234700b81b5ba91da828418dd80bd02e348"
 
 [[projects]]
-  branch = "master"
-  digest = "1:c01ab91de887e7fcdb2f4187748527645342a7d8f5a4741e1cf9b49cfd93ee46"
-  name = "github.com/dukfaar/itemBackend"
-  packages = ["item"]
-  pruneopts = "UT"
-  revision = "8046de88d726378838bb6038b79c6fa80be8d00a"
-
-[[projects]]
   digest = "1:15042ad3498153684d09f393bbaec6b216c8eec6d61f63dff711de7d64ed8861"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
@@ -59,7 +51,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f6cc0e5c1c8716d1110b4a578d868d9c534cd4b575de3142b8061005acb4d382"
+  digest = "1:cbfdf9c2913efa9b6357c47f281e19e90425e454244cdb9d784331793f3315c1"
   name = "github.com/graph-gophers/graphql-go"
   packages = [
     ".",
@@ -78,7 +70,7 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "bb9738501bd42a6536227b96068349b814379d6e"
+  revision = "94da0f0031f9d30a1d56cd4b56e40852516c3301"
 
 [[projects]]
   digest = "1:ff5ebae34cfbf047d505ee150de27e60570e8c394b3b8fdbb720ff6ac71985fc"
@@ -158,7 +150,7 @@
   name = "golang.org/x/net"
   packages = ["context"]
   pruneopts = "UT"
-  revision = "f4c29de78a2a91c00474a2e689954305c350adf9"
+  revision = "f9ce57c11b242f0f1599cf25c89d8cb02c45295a"
 
 [[projects]]
   branch = "v2"
@@ -184,7 +176,6 @@
     "github.com/dukfaar/goUtils/http",
     "github.com/dukfaar/goUtils/permission",
     "github.com/dukfaar/goUtils/relay",
-    "github.com/dukfaar/itemBackend/item",
     "github.com/gorilla/websocket",
     "github.com/graph-gophers/graphql-go",
     "github.com/graph-gophers/graphql-go/relay",

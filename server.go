@@ -90,7 +90,7 @@ func main() {
 	queryResult := dukGraphql.Response{result}
 
 	permission.ParseQueryResponse(queryResult, permissionService)
-	permissionService.BuildUserPermissionData()
+	permissionService.BuildAllUserPermissionData()
 
 	nsqEventbus.On("service.up", "item", func(msg []byte) error {
 		newService := eventbus.ServiceInfo{}
