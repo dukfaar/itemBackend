@@ -30,6 +30,15 @@ func (r *Resolver) Name(ctx context.Context) (*string, error) {
 	return &r.Model.Name, nil
 }
 
+func (r *Resolver) XivdbID(ctx context.Context) (*int32, error) {
+	err := permission.Check(ctx, "Item.xivdbid.read")
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Model.XivdbID, nil
+}
+
 func (r *Resolver) NamespaceID(ctx context.Context) (*graphql.ID, error) {
 	err := permission.Check(ctx, "Item.namespaceId.read")
 	if err != nil {

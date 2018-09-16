@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/dukfaar/goUtils/eventbus"
 	dukgraphql "github.com/dukfaar/goUtils/graphql"
@@ -229,6 +230,56 @@ func (r *Resolver) XivdbItemImport(ctx context.Context) (string, error) {
 		return "No Permission", err
 	}
 
-	//TODO implement
-	return "Not implemented yet", nil
+	itemListResponse, err := http.Get("https://api.xivdb.com/item?columns=id")
+
+	if err != nil {
+		fmt.Errorf("Error getting item list: %v", err)
+		return "", err
+	}
+	defer itemListResponse.Body.Close()
+
+	itemList := make([]XivdbItemListResponse, 0)
+	err = json.NewDecoder(itemListResponse.Body).Decode(&itemList)
+
+	if err != nil {
+		fmt.Errorf("Error reading item list: %v", err)
+		return "", err
+	}
+
+	eventbus := ctx.Value("eventbus").(eventbus.EventBus)
+
+	go func() {
+		namespaceId, err := fetchFFXIVNamespace(ctx)
+		if err != nil {
+			return
+		}
+
+		for index, _ := range itemList {
+			item := itemList[index]
+			itemData, err := FetchXivdbItemData(item.ID)
+
+			if err != nil {
+				fmt.Printf("Skipping item with id: %v\n", item.ID)
+				time.Sleep(time.Millisecond * 200)
+				continue
+			}
+
+			resultItem := make(map[string]interface{})
+			json.Unmarshal(itemData, &resultItem)
+			resultItem["namespace"] = namespaceId
+
+			delete(resultItem, "special_shops_obtain")
+			delete(resultItem, "special_shops_currency")
+
+			err = eventbus.Emit("import.item.by.xivdbid", resultItem)
+
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			time.Sleep(time.Millisecond * 200)
+		}
+	}()
+
+	return "OK", nil
 }

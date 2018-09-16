@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -120,11 +119,7 @@ func main() {
 	eventItemService := item.NewMgoService(eventDB, nsqEventbus)
 
 	nsqEventbus.On("import.item.by.rcname", "item", CreateRCEventImporter(eventItemService))
-
-	nsqEventbus.On("import.item.by.xivdbid", "item", func(msg []byte) error {
-		fmt.Println(string(msg))
-		return nil
-	})
+	nsqEventbus.On("import.item.by.xivdbid", "item", CreateXivdbEventImporter(eventItemService))
 
 	nsqEventbus.Emit("service.up", serviceInfo)
 

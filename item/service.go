@@ -12,6 +12,7 @@ type Service interface {
 	DeleteByID(id string) (string, error)
 	FindByID(string) (*Model, error)
 	FindByName(string) (*Model, error)
+	FindByXivdbID(int32) (*Model, error)
 	HasElementBeforeID(id string) (bool, error)
 	HasElementAfterID(id string) (bool, error)
 
@@ -86,6 +87,14 @@ func (s *MgoService) FindByName(name string) (*Model, error) {
 	var result Model
 
 	err := s.collection.Find(bson.M{"name": name}).One(&result)
+
+	return &result, err
+}
+
+func (s *MgoService) FindByXivdbID(id int32) (*Model, error) {
+	var result Model
+
+	err := s.collection.Find(bson.M{"xivdbid": id}).One(&result)
 
 	return &result, err
 }
