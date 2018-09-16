@@ -40,6 +40,8 @@ ENV API_GATEWAY_PATH=$API_GATEWAY_PATH
 
 EXPOSE $PORT
 
+RUN apk add --no-cache ca-certificates
+
 WORKDIR /app
 COPY --from=builder /app/main /app/
 
