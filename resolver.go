@@ -165,6 +165,11 @@ func (r *Resolver) Item(ctx context.Context, args struct {
 }
 
 func (r *Resolver) RcItemImport(ctx context.Context) (string, error) {
+	err := permission.Check(ctx, "mutation.rcItemImport")
+	if err != nil {
+		return "No Permission", err
+	}
+
 	rcItemResponse, err := http.Get("https://rc.dukfaar.com/api/item")
 
 	if err != nil {
@@ -212,6 +217,11 @@ func (r *Resolver) RcItemImport(ctx context.Context) (string, error) {
 }
 
 func (r *Resolver) XivdbItemImport(ctx context.Context) (string, error) {
+	err := permission.Check(ctx, "mutation.xivdbItemImport")
+	if err != nil {
+		return "No Permission", err
+	}
+
 	//TODO implement
 	return "Not implemented yet", nil
 }
