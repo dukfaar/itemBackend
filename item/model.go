@@ -2,7 +2,7 @@ package item
 
 import (
 	"github.com/dukfaar/goUtils/relay"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/globalsign/mgo/bson"
 )
 
 type Model struct {

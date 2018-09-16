@@ -20,6 +20,9 @@ var Schema string = `
 			createItem(name: String, namespaceId: ID): Item!
 			updateItem(id: ID!, name: String, namespaceId: ID): Item!
 			deleteItem(id: ID!): ID
+
+			rcItemImport(): String!
+			xivdbItemImport(): String!
 		}` +
 	relay.PageInfoGraphQLString +
 	item.GraphQLType

@@ -2,8 +2,8 @@ package item
 
 import (
 	"github.com/dukfaar/goUtils/eventbus"
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	mgo "github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 )
 
 type Service interface {
@@ -11,6 +11,7 @@ type Service interface {
 	Update(string, interface{}) (*Model, error)
 	DeleteByID(id string) (string, error)
 	FindByID(string) (*Model, error)
+	FindByName(string) (*Model, error)
 	HasElementBeforeID(id string) (bool, error)
 	HasElementAfterID(id string) (bool, error)
 
@@ -77,6 +78,14 @@ func (s *MgoService) FindByID(id string) (*Model, error) {
 	var result Model
 
 	err := s.collection.FindId(bson.ObjectIdHex(id)).One(&result)
+
+	return &result, err
+}
+
+func (s *MgoService) FindByName(name string) (*Model, error) {
+	var result Model
+
+	err := s.collection.Find(bson.M{"name": name}).One(&result)
 
 	return &result, err
 }

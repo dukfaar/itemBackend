@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
 
+	"github.com/dukfaar/goUtils/eventbus"
+	dukgraphql "github.com/dukfaar/goUtils/graphql"
 	"github.com/dukfaar/goUtils/permission"
-
 	"github.com/dukfaar/goUtils/relay"
 	"github.com/dukfaar/itemBackend/item"
+	"github.com/globalsign/mgo/bson"
 	graphql "github.com/graph-gophers/graphql-go"
-	"gopkg.in/mgo.v2/bson"
 )
 
 type Resolver struct {
@@ -158,4 +162,56 @@ func (r *Resolver) Item(ctx context.Context, args struct {
 	}
 
 	return nil, err
+}
+
+func (r *Resolver) RcItemImport(ctx context.Context) (string, error) {
+	rcItemResponse, err := http.Get("https://rc.dukfaar.com/api/item")
+
+	if err != nil {
+		fmt.Printf("Error getting leve: %v\n", err)
+		return "Error reading from RC", err
+	}
+	defer rcItemResponse.Body.Close()
+
+	var itemsData struct {
+		Count int                      `json:"count"`
+		List  []map[string]interface{} `json:"list"`
+	}
+	err = json.NewDecoder(rcItemResponse.Body).Decode(&itemsData)
+
+	if err != nil {
+		fmt.Printf("Error reading leve: %v\n", err)
+		return "Error parsing data from RC", err
+	}
+
+	eventbus := ctx.Value("eventbus").(eventbus.EventBus)
+	fetcher := ctx.Value("apigatewayfetcher").(dukgraphql.Fetcher)
+
+	namespaceResult, err := fetcher.Fetch(dukgraphql.Request{
+		Query: "query { namespaceByName(name: \"FFXIV\") { _id name } }",
+	})
+
+	if err != nil {
+		fmt.Printf("Error fetching namespace: %v\n", err)
+		return "Error fetching namespace", err
+	}
+
+	namespaceResponse := dukgraphql.Response{namespaceResult}
+
+	namespaceId := namespaceResponse.GetObject("namespaceByName").GetString("_id")
+
+	go func() {
+		for index := range itemsData.List {
+			item := itemsData.List[index]
+			item["namespace"] = namespaceId
+			eventbus.Emit("import.item.by.rcname", item)
+		}
+	}()
+
+	return "OK", nil
+}
+
+func (r *Resolver) XivdbItemImport(ctx context.Context) (string, error) {
+	//TODO implement
+	return "Not implemented yet", nil
 }
