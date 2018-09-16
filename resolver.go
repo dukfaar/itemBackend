@@ -164,6 +164,23 @@ func (r *Resolver) Item(ctx context.Context, args struct {
 	return nil, err
 }
 
+func fetchFFXIVNamespace(ctx context.Context) (string, error) {
+	fetcher := ctx.Value("apigatewayfetcher").(dukgraphql.Fetcher)
+
+	namespaceResult, err := fetcher.Fetch(dukgraphql.Request{
+		Query: "query { namespaceByName(name: \"FFXIV\") { _id name } }",
+	})
+
+	if err != nil {
+		fmt.Printf("Error fetching namespace: %v\n", err)
+		return "", err
+	}
+
+	namespaceResponse := dukgraphql.Response{namespaceResult}
+
+	return namespaceResponse.GetObject("namespaceByName").GetString("_id"), nil
+}
+
 func (r *Resolver) RcItemImport(ctx context.Context) (string, error) {
 	err := permission.Check(ctx, "mutation.rcItemImport")
 	if err != nil {
@@ -190,20 +207,10 @@ func (r *Resolver) RcItemImport(ctx context.Context) (string, error) {
 	}
 
 	eventbus := ctx.Value("eventbus").(eventbus.EventBus)
-	fetcher := ctx.Value("apigatewayfetcher").(dukgraphql.Fetcher)
-
-	namespaceResult, err := fetcher.Fetch(dukgraphql.Request{
-		Query: "query { namespaceByName(name: \"FFXIV\") { _id name } }",
-	})
-
+	namespaceId, err := fetchFFXIVNamespace(ctx)
 	if err != nil {
-		fmt.Printf("Error fetching namespace: %v\n", err)
 		return "Error fetching namespace", err
 	}
-
-	namespaceResponse := dukgraphql.Response{namespaceResult}
-
-	namespaceId := namespaceResponse.GetObject("namespaceByName").GetString("_id")
 
 	go func() {
 		for index := range itemsData.List {

@@ -16,7 +16,6 @@ import (
 	"github.com/dukfaar/itemBackend/item"
 
 	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 
 	"github.com/gorilla/websocket"
 
@@ -115,61 +114,12 @@ func main() {
 		return nil
 	})
 
-	nsqEventbus.On("import.item.by.rcname", "item", func(msg []byte) error {
-		var itemData struct {
-			Name        string `json:"name"`
-			NamespaceID string `json:"namespace"`
-			//Add other vars here
-		}
+	eventDBSession := dbSession.Clone()
+	eventDB := eventDBSession.DB("item")
+	defer eventDBSession.Close()
+	eventItemService := item.NewMgoService(eventDB, nsqEventbus)
 
-		err := json.Unmarshal(msg, &itemData)
-
-		if err != nil {
-			fmt.Printf("Error(%v) unmarshaling event data: %v\n", err, string(msg))
-			return err
-		}
-
-		if itemData.Name == "" {
-			fmt.Printf("Cant import an item without a name\n")
-			return nil
-		}
-
-		itemModel, err := itemService.FindByName(itemData.Name)
-
-		if err != nil {
-			if err.Error() == "not found" {
-
-				var newItemModel = item.Model{}
-				newItemModel.Name = itemData.Name
-				newItemModel.NamespaceID = bson.ObjectIdHex(itemData.NamespaceID)
-
-				_, err := itemService.Create(&newItemModel)
-
-				if err != nil {
-					fmt.Printf("Error(%v) saving new item: %v\n", err, newItemModel)
-				}
-			} else {
-				fmt.Printf("Unknown error: %v\n", err)
-			}
-
-			return err
-		}
-
-		if itemModel == nil {
-			fmt.Println("Model not found")
-		} else {
-			itemModel.Name = itemData.Name
-			itemModel.NamespaceID = bson.ObjectIdHex(itemData.NamespaceID)
-
-			_, err := itemService.Update(itemModel.ID.Hex(), &itemModel)
-
-			if err != nil {
-				fmt.Printf("Error(%v) updating item: %v\n", err, itemModel)
-			}
-		}
-
-		return nil
-	})
+	nsqEventbus.On("import.item.by.rcname", "item", CreateRCEventImporter(eventItemService))
 
 	nsqEventbus.On("import.item.by.xivdbid", "item", func(msg []byte) error {
 		fmt.Println(string(msg))
