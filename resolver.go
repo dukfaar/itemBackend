@@ -190,7 +190,7 @@ func (r *Resolver) RcItemImport(ctx context.Context) (string, error) {
 	rcItemResponse, err := http.Get("https://rc.dukfaar.com/api/item")
 
 	if err != nil {
-		fmt.Printf("Error getting leve: %v\n", err)
+		fmt.Printf("Error getting items: %v\n", err)
 		return "Error reading from RC", err
 	}
 	defer rcItemResponse.Body.Close()
@@ -202,7 +202,7 @@ func (r *Resolver) RcItemImport(ctx context.Context) (string, error) {
 	err = json.NewDecoder(rcItemResponse.Body).Decode(&itemsData)
 
 	if err != nil {
-		fmt.Printf("Error reading leve: %v\n", err)
+		fmt.Printf("Error reading items: %v\n", err)
 		return "Error parsing data from RC", err
 	}
 
