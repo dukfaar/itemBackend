@@ -12,7 +12,7 @@ type Resolver struct {
 }
 
 func (r *Resolver) ID(ctx context.Context) (*graphql.ID, error) {
-	err := permission.Check(ctx, "item._id.read")
+	err := permission.Check(ctx, "Item._id.read")
 	if err != nil {
 		return nil, err
 	}
@@ -22,7 +22,7 @@ func (r *Resolver) ID(ctx context.Context) (*graphql.ID, error) {
 }
 
 func (r *Resolver) Name(ctx context.Context) (*string, error) {
-	err := permission.Check(ctx, "item.name.read")
+	err := permission.Check(ctx, "Item.name.read")
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (r *Resolver) Name(ctx context.Context) (*string, error) {
 }
 
 func (r *Resolver) NamespaceID(ctx context.Context) (*graphql.ID, error) {
-	err := permission.Check(ctx, "item.namespaceId.read")
+	err := permission.Check(ctx, "Item.namespaceId.read")
 	if err != nil {
 		return nil, err
 	}

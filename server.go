@@ -145,10 +145,6 @@ func main() {
 
 				_, err := itemService.Create(&newItemModel)
 
-				if itemData.Name == "Hardsilver Staff" {
-					fmt.Printf("%v %v\n", itemData.Name, newItemModel.Name)
-				}
-
 				if err != nil {
 					fmt.Printf("Error(%v) saving new item: %v\n", err, newItemModel)
 				}
@@ -162,9 +158,6 @@ func main() {
 		if itemModel == nil {
 			fmt.Println("Model not found")
 		} else {
-			if itemData.Name == "Hardsilver Staff" {
-				fmt.Printf("%v %v\n", itemData.Name, itemModel.Name)
-			}
 			itemModel.Name = itemData.Name
 			itemModel.NamespaceID = bson.ObjectIdHex(itemData.NamespaceID)
 
