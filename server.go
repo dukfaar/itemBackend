@@ -89,6 +89,21 @@ func main() {
 		Port:                  env.GetDefaultEnvVar("PUBLISHED_PORT", "8080"),
 		GraphQLHttpEndpoint:   "/graphql",
 		GraphQLSocketEndpoint: "/socket",
+		SchemaExtensions: []eventbus.SchemaExtension{{
+			Type: "Item",
+			Fields: []eventbus.FieldType{
+				{
+					Name: "namespace",
+					Type: "Namespace",
+					Resolve: eventbus.ResolveType{
+						By: "namespace",
+						FieldArguments: map[string]string{
+							"id": "namespaceId",
+						},
+					},
+				},
+			},
+		}},
 	}
 
 	result, err := loginApiGatewayFetcher.Fetch(dukGraphql.Request{
