@@ -10,14 +10,41 @@ import (
 )
 
 type RCItemEventData struct {
-	Name        string `json:"name"`
-	NamespaceID string `json:"namespace"`
+	Name              string `json:"name" model:"Name"`
+	NamespaceID       string `json:"namespace"`
+	GatheringLevel    int32  `json:"gatheringLevel"`
+	GatheringJob      string `json:"gatheringJob"`
+	GatheringEffort   int32  `json:"gatheringEffort"`
+	Price             int32  `json:"price"`
+	PriceHQ           int32  `json:"priceHQ"`
+	UnspoiledNode     bool   `json:"unspoiledNode"`
+	UnspoiledNodeTime struct {
+		Time           int32  `json:"time"`
+		Duration       int32  `json:"duration"`
+		AmPm           string `json:"ampm"`
+		FolkloreNeeded string `json:"folkloreNeeded"`
+	} `json:"unspoiledNodeTime"`
+	AvailableFromNpc bool `json:"availableFromNpc"`
 	//Add other vars here
 }
 
 func setModelFromRCEvent(itemModel *item.Model, data RCItemEventData) {
 	itemModel.Name = data.Name
 	itemModel.NamespaceID = bson.ObjectIdHex(data.NamespaceID)
+	itemModel.GatheringEffort = &data.GatheringEffort
+	//gatheringJobId = bson.ObjectIdHex(data.GatheringJob)
+	//itemModel.GatheringJob = &bson.ObjectIdHex(data.GatheringJob)
+	itemModel.GatheringLevel = &data.GatheringLevel
+	itemModel.Price = &data.Price
+	itemModel.PriceHQ = &data.PriceHQ
+	itemModel.UnspoiledNode = &data.UnspoiledNode
+	itemModel.UnspoiledNodeTime = &item.UnspoiledNodeTime{
+		Time:           &data.UnspoiledNodeTime.Time,
+		Duration:       &data.UnspoiledNodeTime.Duration,
+		AmPm:           &data.UnspoiledNodeTime.AmPm,
+		FolkloreNeeded: &data.UnspoiledNodeTime.FolkloreNeeded,
+	}
+	itemModel.AvailableFromNpc = &data.AvailableFromNpc
 	//Add other vars here
 }
 
