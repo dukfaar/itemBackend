@@ -73,6 +73,62 @@ func (r *Resolver) Items(ctx context.Context, args struct {
 	}, nil
 }
 
+func (r *Resolver) SearchItems(ctx context.Context, args struct {
+	First  *int32
+	Last   *int32
+	Before *string
+	After  *string
+	Name   *string
+}) (*item.ConnectionResolver, error) {
+	err := permission.Check(ctx, "query.searchItems")
+	if err != nil {
+		return nil, err
+	}
+
+	itemService := ctx.Value("itemService").(item.Service)
+
+	var totalChannel = make(chan int)
+	go func() {
+		var total, _ = itemService.Count()
+		totalChannel <- total
+	}()
+
+	var itemsChannel = make(chan []item.Model)
+	go func() {
+		options := "i"
+		result, _ := itemService.FindByRegexName(args.First, args.Last, args.Before, args.After, *args.Name, options)
+		itemsChannel <- result
+	}()
+
+	var (
+		start string
+		end   string
+	)
+
+	var items = <-itemsChannel
+
+	if len(items) == 0 {
+		start, end = "", ""
+	} else {
+		start, end = items[0].ID.Hex(), items[len(items)-1].ID.Hex()
+	}
+
+	hasPreviousPageChannel, hasNextPageChannel := relay.GetHasPreviousAndNextPage(len(items), start, end, itemService)
+
+	return &item.ConnectionResolver{
+		Models: items,
+		ConnectionResolver: relay.ConnectionResolver{
+			relay.Connection{
+				Total:           int32(<-totalChannel),
+				From:            start,
+				To:              end,
+				HasNextPage:     <-hasNextPageChannel,
+				HasPreviousPage: <-hasPreviousPageChannel,
+			},
+		},
+	}, nil
+}
+
 func (r *Resolver) CreateItem(ctx context.Context, args struct {
 	Name        *string
 	NamespaceId *string

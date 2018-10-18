@@ -12,6 +12,7 @@ type Service interface {
 	DeleteByID(id string) (string, error)
 	FindByID(string) (*Model, error)
 	FindByName(string) (*Model, error)
+	FindByRegexName(first *int32, last *int32, before *string, after *string, pattern string, options string) ([]Model, error)
 	FindByXivdbID(int32) (*Model, error)
 	HasElementBeforeID(id string) (bool, error)
 	HasElementAfterID(id string) (bool, error)
@@ -91,6 +92,13 @@ func (s *MgoService) FindByName(name string) (*Model, error) {
 	return &result, err
 }
 
+func (s *MgoService) FindByRegexName(first *int32, last *int32, before *string, after *string, pattern string, options string) ([]Model, error) {
+	query := s.buildListQuery(before, after)
+	query["name"] = bson.RegEx{Pattern: pattern, Options: options}
+
+	return s.performListQuery(query, first, last, before, after)
+}
+
 func (s *MgoService) FindByXivdbID(id int32) (*Model, error) {
 	var result Model
 
@@ -126,7 +134,7 @@ func (s *MgoService) Count() (int, error) {
 	return count, err
 }
 
-func (s *MgoService) List(first *int32, last *int32, before *string, after *string) ([]Model, error) {
+func (s *MgoService) buildListQuery(before *string, after *string) bson.M {
 	query := bson.M{}
 
 	if after != nil {
@@ -141,6 +149,10 @@ func (s *MgoService) List(first *int32, last *int32, before *string, after *stri
 		}
 	}
 
+	return query
+}
+
+func (s *MgoService) performListQuery(query bson.M, first *int32, last *int32, before *string, after *string) ([]Model, error) {
 	var (
 		skip  int
 		limit int
@@ -160,4 +172,9 @@ func (s *MgoService) List(first *int32, last *int32, before *string, after *stri
 	var result []Model
 	err := s.collection.Find(query).Skip(skip).Limit(limit).All(&result)
 	return result, err
+}
+
+func (s *MgoService) List(first *int32, last *int32, before *string, after *string) ([]Model, error) {
+	query := s.buildListQuery(before, after)
+	return s.performListQuery(query, first, last, before, after)
 }
