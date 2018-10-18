@@ -123,6 +123,10 @@ func (r *Resolver) UnspoiledNodeTime(ctx context.Context) (*UnspoiledNodeTimeRes
 		return nil, err
 	}
 
+	if r.Model.UnspoiledNodeTime == nil {
+		return nil, nil
+	}
+
 	return &UnspoiledNodeTimeResolver{r.Model.UnspoiledNodeTime}, nil
 }
 
