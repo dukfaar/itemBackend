@@ -19,6 +19,14 @@ type Service interface {
 
 	Count() (int, error)
 
+	HasElementBeforeIDWithQuery(bson.M, string) (bool, error)
+	HasElementAfterIDWithQuery(bson.M, string) (bool, error)
+	CountWithQuery(bson.M) (int, error)
+
+	MakeBaseQuery() bson.M
+	MakeNameRegexQuery(inQuery bson.M, pattern string, options string)
+	MakeListQuery(query bson.M, before *string, after *string)
+
 	List(first *int32, last *int32, before *string, after *string) ([]Model, error)
 }
 
@@ -33,6 +41,28 @@ func NewMgoService(db *mgo.Database, eventbus eventbus.EventBus) *MgoService {
 		db:         db,
 		collection: db.C("items"),
 		eventbus:   eventbus,
+	}
+}
+
+func (s *MgoService) MakeBaseQuery() bson.M {
+	return bson.M{}
+}
+
+func (s *MgoService) MakeNameRegexQuery(query bson.M, pattern string, options string) {
+	query["name"] = bson.RegEx{Pattern: pattern, Options: options}
+}
+
+func (s *MgoService) MakeListQuery(query bson.M, before *string, after *string) {
+	if after != nil {
+		query["_id"] = bson.M{
+			"$gt": bson.ObjectIdHex(*after),
+		}
+	}
+
+	if before != nil {
+		query["_id"] = bson.M{
+			"$lt": bson.ObjectIdHex(*before),
+		}
 	}
 }
 
@@ -93,8 +123,9 @@ func (s *MgoService) FindByName(name string) (*Model, error) {
 }
 
 func (s *MgoService) FindByRegexName(first *int32, last *int32, before *string, after *string, pattern string, options string) ([]Model, error) {
-	query := s.buildListQuery(before, after)
-	query["name"] = bson.RegEx{Pattern: pattern, Options: options}
+	query := s.MakeBaseQuery()
+	s.MakeListQuery(query, before, after)
+	s.MakeNameRegexQuery(query, pattern, options)
 
 	return s.performListQuery(query, first, last, before, after)
 }
@@ -129,27 +160,44 @@ func (s *MgoService) HasElementAfterID(id string) (bool, error) {
 	return count > 0, err
 }
 
+func (s *MgoService) HasElementBeforeIDWithQuery(inquery bson.M, id string) (bool, error) {
+	query := bson.M{}
+
+	for k, v := range inquery {
+		query[k] = v
+	}
+
+	query["_id"] = bson.M{
+		"$lt": bson.ObjectIdHex(id),
+	}
+
+	count, err := s.collection.Find(query).Count()
+	return count > 0, err
+}
+
+func (s *MgoService) HasElementAfterIDWithQuery(inquery bson.M, id string) (bool, error) {
+	query := bson.M{}
+
+	for k, v := range inquery {
+		query[k] = v
+	}
+
+	query["_id"] = bson.M{
+		"$gt": bson.ObjectIdHex(id),
+	}
+
+	count, err := s.collection.Find(query).Count()
+	return count > 0, err
+}
+
 func (s *MgoService) Count() (int, error) {
 	count, err := s.collection.Find(bson.M{}).Count()
 	return count, err
 }
 
-func (s *MgoService) buildListQuery(before *string, after *string) bson.M {
-	query := bson.M{}
-
-	if after != nil {
-		query["_id"] = bson.M{
-			"$gt": bson.ObjectIdHex(*after),
-		}
-	}
-
-	if before != nil {
-		query["_id"] = bson.M{
-			"$lt": bson.ObjectIdHex(*before),
-		}
-	}
-
-	return query
+func (s *MgoService) CountWithQuery(query bson.M) (int, error) {
+	count, err := s.collection.Find(query).Count()
+	return count, err
 }
 
 func (s *MgoService) performListQuery(query bson.M, first *int32, last *int32, before *string, after *string) ([]Model, error) {
@@ -175,6 +223,7 @@ func (s *MgoService) performListQuery(query bson.M, first *int32, last *int32, b
 }
 
 func (s *MgoService) List(first *int32, last *int32, before *string, after *string) ([]Model, error) {
-	query := s.buildListQuery(before, after)
+	query := s.MakeBaseQuery()
+	s.MakeListQuery(query, before, after)
 	return s.performListQuery(query, first, last, before, after)
 }

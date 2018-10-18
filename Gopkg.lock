@@ -11,7 +11,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:12ff8913aebb8cecbf46c7e0c126118f74615c71acabbde6b8e9a80529440f2e"
+  digest = "1:7a940a09cd6f2e9f3f2ac7b58e36ede65872316f4ea52c9de327201edfa6b327"
   name = "github.com/dukfaar/goUtils"
   packages = [
     "env",
@@ -23,7 +23,7 @@
     "service",
   ]
   pruneopts = "UT"
-  revision = "d868331af137008b3643a2a8da39352c95e5ecb8"
+  revision = "85ee7bd345077081877bf5a91e9aa7520e46ce15"
 
 [[projects]]
   branch = "master"

@@ -89,7 +89,9 @@ func (r *Resolver) SearchItems(ctx context.Context, args struct {
 
 	var totalChannel = make(chan int)
 	go func() {
-		var total, _ = itemService.Count()
+		countQuery := itemService.MakeBaseQuery()
+		itemService.MakeNameRegexQuery(countQuery, *args.Name, "i")
+		var total, _ = itemService.CountWithQuery(countQuery)
 		totalChannel <- total
 	}()
 
@@ -113,7 +115,10 @@ func (r *Resolver) SearchItems(ctx context.Context, args struct {
 		start, end = items[0].ID.Hex(), items[len(items)-1].ID.Hex()
 	}
 
-	hasPreviousPageChannel, hasNextPageChannel := relay.GetHasPreviousAndNextPage(len(items), start, end, itemService)
+	relayQuery := itemService.MakeBaseQuery()
+	itemService.MakeNameRegexQuery(relayQuery, *args.Name, "i")
+
+	hasPreviousPageChannel, hasNextPageChannel := relay.GetHasPreviousAndNextPageWithQuery(relayQuery, len(items), start, end, itemService)
 
 	return &item.ConnectionResolver{
 		Models: items,
