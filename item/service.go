@@ -12,7 +12,6 @@ type Service interface {
 	DeleteByID(id string) (string, error)
 	FindByID(string) (*Model, error)
 	FindByName(string) (*Model, error)
-	FindByRegexName(first *int32, last *int32, before *string, after *string, pattern string, options string) ([]Model, error)
 	FindByXivdbID(int32) (*Model, error)
 	HasElementBeforeID(id string) (bool, error)
 	HasElementAfterID(id string) (bool, error)
@@ -24,8 +23,11 @@ type Service interface {
 	CountWithQuery(bson.M) (int, error)
 
 	MakeBaseQuery() bson.M
-	MakeNameRegexQuery(inQuery bson.M, pattern string, options string)
+	MakeNameRegexQuery(query bson.M, pattern string, options string)
 	MakeListQuery(query bson.M, before *string, after *string)
+
+	PerformQuery(query bson.M) *Model
+	PerformListQuery(query bson.M, first *int32, last *int32, before *string, after *string) ([]Model, error)
 
 	List(first *int32, last *int32, before *string, after *string) ([]Model, error)
 }
@@ -64,6 +66,34 @@ func (s *MgoService) MakeListQuery(query bson.M, before *string, after *string) 
 			"$lt": bson.ObjectIdHex(*before),
 		}
 	}
+}
+
+func (s *MgoService) PerformQuery(query bson.M) *Model {
+	var result Model
+	s.collection.Find(query).One(&result)
+	return &result
+}
+
+func (s *MgoService) PerformListQuery(query bson.M, first *int32, last *int32, before *string, after *string) ([]Model, error) {
+	var (
+		skip  int
+		limit int
+	)
+
+	if first != nil {
+		limit = int(*first)
+	}
+
+	if last != nil {
+		count, _ := s.collection.Find(query).Count()
+
+		limit = int(*last)
+		skip = count - limit
+	}
+
+	var result []Model
+	err := s.collection.Find(query).Skip(skip).Limit(limit).All(&result)
+	return result, err
 }
 
 func (s *MgoService) Create(model *Model) (*Model, error) {
@@ -120,14 +150,6 @@ func (s *MgoService) FindByName(name string) (*Model, error) {
 	err := s.collection.Find(bson.M{"name": name}).One(&result)
 
 	return &result, err
-}
-
-func (s *MgoService) FindByRegexName(first *int32, last *int32, before *string, after *string, pattern string, options string) ([]Model, error) {
-	query := s.MakeBaseQuery()
-	s.MakeListQuery(query, before, after)
-	s.MakeNameRegexQuery(query, pattern, options)
-
-	return s.performListQuery(query, first, last, before, after)
 }
 
 func (s *MgoService) FindByXivdbID(id int32) (*Model, error) {
@@ -200,30 +222,8 @@ func (s *MgoService) CountWithQuery(query bson.M) (int, error) {
 	return count, err
 }
 
-func (s *MgoService) performListQuery(query bson.M, first *int32, last *int32, before *string, after *string) ([]Model, error) {
-	var (
-		skip  int
-		limit int
-	)
-
-	if first != nil {
-		limit = int(*first)
-	}
-
-	if last != nil {
-		count, _ := s.collection.Find(query).Count()
-
-		limit = int(*last)
-		skip = count - limit
-	}
-
-	var result []Model
-	err := s.collection.Find(query).Skip(skip).Limit(limit).All(&result)
-	return result, err
-}
-
 func (s *MgoService) List(first *int32, last *int32, before *string, after *string) ([]Model, error) {
 	query := s.MakeBaseQuery()
 	s.MakeListQuery(query, before, after)
-	return s.performListQuery(query, first, last, before, after)
+	return s.PerformListQuery(query, first, last, before, after)
 }

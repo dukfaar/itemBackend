@@ -12,9 +12,8 @@ var Schema string = `
 		}
 
 		type Query {
-			items(first: Int, last: Int, before: String, after: String): ItemConnection!
+			items(first: Int, last: Int, before: String, after: String, name: String): ItemConnection!
 			item(id: ID!): Item!
-			searchItems(name: String, first: Int, last: Int, before: String, after: String): ItemConnection!
 		}
 
 		type Mutation {

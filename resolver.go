@@ -24,6 +24,7 @@ func (r *Resolver) Items(ctx context.Context, args struct {
 	Last   *int32
 	Before *string
 	After  *string
+	Name   *string
 }) (*item.ConnectionResolver, error) {
 	err := permission.Check(ctx, "query.items")
 	if err != nil {
@@ -34,13 +35,22 @@ func (r *Resolver) Items(ctx context.Context, args struct {
 
 	var totalChannel = make(chan int)
 	go func() {
-		var total, _ = itemService.Count()
+		query := itemService.MakeBaseQuery()
+		if args.Name != nil {
+			itemService.MakeNameRegexQuery(query, *args.Name, "i")
+		}
+		var total, _ = itemService.CountWithQuery(query)
 		totalChannel <- total
 	}()
 
 	var itemsChannel = make(chan []item.Model)
 	go func() {
-		result, _ := itemService.List(args.First, args.Last, args.Before, args.After)
+		query := itemService.MakeBaseQuery()
+		itemService.MakeListQuery(query, args.Before, args.After)
+		if args.Name != nil {
+			itemService.MakeNameRegexQuery(query, *args.Name, "i")
+		}
+		result, _ := itemService.PerformListQuery(query, args.First, args.Last, args.Before, args.After)
 		itemsChannel <- result
 	}()
 
@@ -57,68 +67,11 @@ func (r *Resolver) Items(ctx context.Context, args struct {
 		start, end = items[0].ID.Hex(), items[len(items)-1].ID.Hex()
 	}
 
-	hasPreviousPageChannel, hasNextPageChannel := relay.GetHasPreviousAndNextPage(len(items), start, end, itemService)
-
-	return &item.ConnectionResolver{
-		Models: items,
-		ConnectionResolver: relay.ConnectionResolver{
-			relay.Connection{
-				Total:           int32(<-totalChannel),
-				From:            start,
-				To:              end,
-				HasNextPage:     <-hasNextPageChannel,
-				HasPreviousPage: <-hasPreviousPageChannel,
-			},
-		},
-	}, nil
-}
-
-func (r *Resolver) SearchItems(ctx context.Context, args struct {
-	First  *int32
-	Last   *int32
-	Before *string
-	After  *string
-	Name   *string
-}) (*item.ConnectionResolver, error) {
-	err := permission.Check(ctx, "query.searchItems")
-	if err != nil {
-		return nil, err
+	query := itemService.MakeBaseQuery()
+	if args.Name != nil {
+		itemService.MakeNameRegexQuery(query, *args.Name, "i")
 	}
-
-	itemService := ctx.Value("itemService").(item.Service)
-
-	var totalChannel = make(chan int)
-	go func() {
-		countQuery := itemService.MakeBaseQuery()
-		itemService.MakeNameRegexQuery(countQuery, *args.Name, "i")
-		var total, _ = itemService.CountWithQuery(countQuery)
-		totalChannel <- total
-	}()
-
-	var itemsChannel = make(chan []item.Model)
-	go func() {
-		options := "i"
-		result, _ := itemService.FindByRegexName(args.First, args.Last, args.Before, args.After, *args.Name, options)
-		itemsChannel <- result
-	}()
-
-	var (
-		start string
-		end   string
-	)
-
-	var items = <-itemsChannel
-
-	if len(items) == 0 {
-		start, end = "", ""
-	} else {
-		start, end = items[0].ID.Hex(), items[len(items)-1].ID.Hex()
-	}
-
-	relayQuery := itemService.MakeBaseQuery()
-	itemService.MakeNameRegexQuery(relayQuery, *args.Name, "i")
-
-	hasPreviousPageChannel, hasNextPageChannel := relay.GetHasPreviousAndNextPageWithQuery(relayQuery, len(items), start, end, itemService)
+	hasPreviousPageChannel, hasNextPageChannel := relay.GetHasPreviousAndNextPageWithQuery(query, len(items), start, end, itemService)
 
 	return &item.ConnectionResolver{
 		Models: items,
