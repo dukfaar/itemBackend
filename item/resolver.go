@@ -58,13 +58,17 @@ func (r *Resolver) GatheringLevel(ctx context.Context) (*int32, error) {
 	return r.Model.GatheringLevel, nil
 }
 
-func (r *Resolver) GatheringJob(ctx context.Context) (*graphql.ID, error) {
-	err := permission.Check(ctx, "Item.gatheringJob.read")
+func (r *Resolver) GatheringJobID(ctx context.Context) (*graphql.ID, error) {
+	err := permission.Check(ctx, "Item.gatheringJobId.read")
 	if err != nil {
 		return nil, err
 	}
 
-	id := graphql.ID(r.Model.GatheringJob.Hex())
+	if r.Model.GatheringJobID == nil {
+		return nil, nil
+	}
+
+	id := graphql.ID(r.Model.GatheringJobID.Hex())
 	return &id, nil
 }
 

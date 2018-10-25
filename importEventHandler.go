@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	dukgraphql "github.com/dukfaar/goUtils/graphql"
 	"github.com/dukfaar/itemBackend/item"
 	"github.com/globalsign/mgo/bson"
 )
@@ -28,12 +29,47 @@ type RCItemEventData struct {
 	//Add other vars here
 }
 
-func setModelFromRCEvent(itemModel *item.Model, data RCItemEventData) {
+var xivJobMap = make(map[string]string)
+
+func fetchFFXIVJob(fetcher dukgraphql.Fetcher, jobName string, namespace string) (string, error) {
+	if _, ok := xivJobMap[jobName]; ok {
+		return xivJobMap[jobName], nil
+	}
+
+	fmt.Printf("fetching class %s in namespace %s\n", jobName, namespace)
+	classResult, err := fetcher.Fetch(dukgraphql.Request{
+		Query: "query { classByNameOrSynonym(name: \"" + jobName + "\", namespaceId: \"" + namespace + "\") { _id name } }",
+	})
+
+	if err != nil {
+		fmt.Printf("Error fetching job: %v\n", err)
+		return "", err
+	}
+
+	classResponse := dukgraphql.Response{classResult}
+	fmt.Printf("result: %+v\n", classResponse)
+
+	result := classResponse.GetObject("classByNameOrSynonym").GetString("_id")
+	xivJobMap[jobName] = result
+	return result, nil
+}
+
+func setModelFromRCEvent(itemModel *item.Model, data RCItemEventData, fetcher dukgraphql.Fetcher) {
 	itemModel.Name = data.Name
 	itemModel.NamespaceID = bson.ObjectIdHex(data.NamespaceID)
 	itemModel.GatheringEffort = &data.GatheringEffort
-	//gatheringJobId = bson.ObjectIdHex(data.GatheringJob)
-	//itemModel.GatheringJob = &bson.ObjectIdHex(data.GatheringJob)
+
+	gatheringJobChannel := make(chan *bson.ObjectId)
+	go func() {
+		job, err := fetchFFXIVJob(fetcher, data.GatheringJob, data.NamespaceID)
+		if err != nil {
+			gatheringJobChannel <- nil
+			return
+		}
+		gatheringJobId := bson.ObjectIdHex(job)
+		gatheringJobChannel <- &gatheringJobId
+	}()
+
 	itemModel.GatheringLevel = &data.GatheringLevel
 	itemModel.Price = &data.Price
 	itemModel.PriceHQ = &data.PriceHQ
@@ -46,11 +82,14 @@ func setModelFromRCEvent(itemModel *item.Model, data RCItemEventData) {
 	}
 	itemModel.AvailableFromNpc = &data.AvailableFromNpc
 	//Add other vars here
+
+	//add delayed fetches here
+	itemModel.GatheringJobID = <-gatheringJobChannel
 }
 
-func createItemModelFromRCEvent(itemService item.Service, itemData RCItemEventData) error {
+func createItemModelFromRCEvent(itemService item.Service, itemData RCItemEventData, fetcher dukgraphql.Fetcher) error {
 	var itemModel = item.Model{}
-	setModelFromRCEvent(&itemModel, itemData)
+	setModelFromRCEvent(&itemModel, itemData, fetcher)
 
 	_, err := itemService.Create(&itemModel)
 
@@ -62,13 +101,13 @@ func createItemModelFromRCEvent(itemService item.Service, itemData RCItemEventDa
 	return nil
 }
 
-func updateItemModelFromRCEvent(itemService item.Service, itemModel *item.Model, itemData RCItemEventData) error {
+func updateItemModelFromRCEvent(itemService item.Service, itemModel *item.Model, itemData RCItemEventData, fetcher dukgraphql.Fetcher) error {
 	if itemModel == nil {
 		fmt.Println("itemModel is ni")
 		return errors.New("itemModel is nil")
 	}
 
-	setModelFromRCEvent(itemModel, itemData)
+	setModelFromRCEvent(itemModel, itemData, fetcher)
 
 	_, err := itemService.Update(itemModel.ID.Hex(), itemModel)
 
@@ -80,7 +119,7 @@ func updateItemModelFromRCEvent(itemService item.Service, itemModel *item.Model,
 	return nil
 }
 
-func CreateRCEventImporter(itemService item.Service) func(msg []byte) error {
+func CreateRCEventImporter(itemService item.Service, fetcher dukgraphql.Fetcher) func(msg []byte) error {
 	return func(msg []byte) error {
 		var itemData RCItemEventData
 		err := json.Unmarshal(msg, &itemData)
@@ -99,14 +138,14 @@ func CreateRCEventImporter(itemService item.Service) func(msg []byte) error {
 
 		if err != nil {
 			if err.Error() == "not found" {
-				return createItemModelFromRCEvent(itemService, itemData)
+				return createItemModelFromRCEvent(itemService, itemData, fetcher)
 			} else {
 				fmt.Printf("Unknown error: %v\n", err)
 				return err
 			}
 		}
 
-		return updateItemModelFromRCEvent(itemService, itemModel, itemData)
+		return updateItemModelFromRCEvent(itemService, itemModel, itemData, fetcher)
 	}
 }
 

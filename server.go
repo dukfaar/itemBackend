@@ -102,6 +102,16 @@ func main() {
 						},
 					},
 				},
+				{
+					Name: "gatheringJob",
+					Type: "Class",
+					Resolve: eventbus.ResolveType{
+						By: "class",
+						FieldArguments: map[string]string{
+							"id": "gatheringJobId",
+						},
+					},
+				},
 			},
 		}},
 	}
@@ -133,7 +143,7 @@ func main() {
 	defer eventDBSession.Close()
 	eventItemService := item.NewMgoService(eventDB, nsqEventbus)
 
-	nsqEventbus.On("import.item.by.rcname", "item", CreateRCEventImporter(eventItemService))
+	nsqEventbus.On("import.item.by.rcname", "item", CreateRCEventImporter(eventItemService, loginApiGatewayFetcher))
 	nsqEventbus.On("import.item.by.xivdbid", "item", CreateXivdbEventImporter(eventItemService))
 
 	nsqEventbus.Emit("service.up", serviceInfo)

@@ -21,7 +21,7 @@ type Model struct {
 	NamespaceID       bson.ObjectId      `json:"namespaceId,omitempty" bson:"namespaceId,omitempty" gql:"namespaceId"`
 	XivdbID           *int32             `json:"xivdbid,omitempty" bson:"xivdbid,omitempty" gql:"xivdbId"`
 	GatheringLevel    *int32             `json:"gatheringLevel,omitempty" bson:"gatheringLevel,omitempty" gql:"gatheringLevel"`
-	GatheringJob      *bson.ObjectId     `json:"gatheringJob,omitempty" bson:"gatheringJob,omitempty" gql:"gatheringJob"`
+	GatheringJobID    *bson.ObjectId     `json:"gatheringJobId,omitempty" bson:"gatheringJobId,omitempty" gql:"gatheringJobId"`
 	GatheringEffort   *int32             `json:"gatheringEffort,omitempty" bson:"gatheringEffort,omitempty" gql:"gatheringEffort"`
 	Price             *int32             `json:"price,omitempty" bson:"price,omitempty" gql:"price"`
 	PriceHQ           *int32             `json:"priceHQ,omitempty" bson:"priceHQ,omitempty" gql:"priceHq"`
