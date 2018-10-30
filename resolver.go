@@ -179,6 +179,35 @@ func (r *Resolver) Item(ctx context.Context, args struct {
 	return nil, err
 }
 
+func (r *Resolver) FindItem(ctx context.Context, args struct {
+	Name        *string
+	NamespaceId *string
+}) (*item.Resolver, error) {
+	err := permission.Check(ctx, "query.findItem")
+	if err != nil {
+		return nil, err
+	}
+
+	itemService := ctx.Value("itemService").(item.Service)
+
+	q := itemService.MakeBaseQuery()
+	if args.Name != nil {
+		q["name"] = *args.Name
+	}
+	if args.NamespaceId != nil {
+		q["namespaceId"] = bson.ObjectIdHex(*args.NamespaceId)
+	}
+	queryItem := itemService.PerformQuery(q)
+
+	if queryItem != nil {
+		return &item.Resolver{
+			Model: queryItem,
+		}, nil
+	}
+
+	return nil, nil
+}
+
 func fetchFFXIVNamespace(ctx context.Context) (string, error) {
 	fetcher := ctx.Value("apigatewayfetcher").(dukgraphql.Fetcher)
 

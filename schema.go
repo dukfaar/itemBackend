@@ -14,6 +14,8 @@ var Schema string = `
 		type Query {
 			items(first: Int, last: Int, before: String, after: String, name: String): ItemConnection!
 			item(id: ID!): Item!
+
+			findItem(name: String, namespaceId: ID): Item
 		}
 
 		type Mutation {
